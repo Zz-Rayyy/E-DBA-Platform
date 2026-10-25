@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - E-DBA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f7f9fb; }
+        .login-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 32px 24px; margin: 48px auto; max-width: 480px;}
+        .btn-primary { background: #0056b3; border: none; }
+        .btn-primary:hover { background: #003d80; }
+        .form-label { font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-card">
+            <h2 class="mb-4 text-center">E-DBA Login</h2>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" required autocomplete="username">
+                </div>
+                <div class="mb-3">
+                    <label for="userType" class="form-label">Select Identity</label>
+                    <select class="form-select" id="userType" name="userType" required>
+                        <option value="">-- Please select --</option>
+                        <option value="T-Admin">T-Admin</option>
+                        <option value="E-Admin">E-Admin</option>
+                        <option value="Senior-E-Admin">Senior-E-Admin</option>
+                        <option value="O-Convener">O-Convener</option>
+                        <option value="DataUser">DataUser</option>
+                    </select>
+                </div>
+                <div class="mb-3 d-flex align-items-center">
+                    <button type="button" class="btn btn-outline-primary me-3" id="sendCodeBtn" onclick="sendVerificationCode()">Send Verification Code</button>
+                    <input type="text" class="form-control" id="code" name="code" placeholder="Enter verification code" required style="max-width: 220px;">
+                </div>
+                <button type="submit" class="btn btn-primary w-100" id="loginBtn">Login</button>
+            </form>
+            <div class="mt-3 text-center">
+                <span>Not an O-Convener? </span>
+                <a href="/register/register" class="btn btn-link">O-Convener Register</a>
+            </div>
+            <div id="msgBox" class="mt-3"></div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let cooldown = 60;
+        let timer;
+
+        function showMsg(msg, type="info") {
+            document.getElementById('msgBox').innerHTML =
+                `<div class="alert alert-${type}" role="alert">${msg}</div>`;
+        }
+
+        function sendVerificationCode() {
+            const email = document.getElementById("email").value;
+            const sendCodeBtn = document.getElementById("sendCodeBtn");
+            if (!email) {
+                showMsg("Please enter your email.", "warning");
+                return;
+            }
+            fetch("/user/send-verification", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `email=${encodeURIComponent(email)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMsg(data.message, data.status === "success" ? "success" : "danger");
+                if (data.status === "success") {
+                    sendCodeBtn.disabled = true;
+                    timer = setInterval(() => {
+                        cooldown--;
+                        sendCodeBtn.textContent = `${cooldown}s`;
+                        if (cooldown <= 0) {
+                            clearInterval(timer);
+                            sendCodeBtn.disabled = false;
+                            sendCodeBtn.textContent = "Send Verification Code";
+                            cooldown = 60;
+                        }
+                    }, 1000);
+                }
+            })
+            .catch(error => {
+                showMsg("Error: " + error, "danger");
+            });
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(event){
+            event.preventDefault();
+            const email = document.getElementById("email").value;
+            const code = document.getElementById("code").value;
+            const userType = document.getElementById("userType").value;
+            if (!userType) {
+                showMsg("Please select your identity.", "warning");
+                return;
+            }
+            fetch("/user/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: `email=${encodeURIComponent(email)}&code=${encodeURIComponent(code)}&userType=${encodeURIComponent(userType)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMsg(data.message, data.status === "success" ? "success" : "danger");
+                if (data.status === "success") {
+                    // 跳转到对应页面
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                }
+            })
+            .catch(error => {
+                showMsg("Error: " + error, "danger");
+            });
+        });
+    </script>
+</body>
+</html>

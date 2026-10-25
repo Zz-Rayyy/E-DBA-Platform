@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Public DataUser Workspace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f7f9fb; }
+        .workspace-header { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 32px 24px; margin-bottom: 24px;}
+        .section-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 24px; margin-bottom: 24px;}
+        .table thead { background: #f0f2f5; }
+        .btn-primary { background: #0056b3; border: none; }
+        .btn-primary:hover { background: #003d80; }
+        .star-answered { color: gold; font-size: 1.2em; margin-left: 4px; }
+        .quota-warning { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">E-DBA DataUser Workspace</a>
+            <div class="d-flex">
+                <span class="navbar-text me-3" id="userEmail">Email: {{ user_email }}</span>
+                <a href="/user/login" class="btn btn-outline-secondary btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Browse Policies -->
+        <div class="workspace-header">
+            <h2 class="mb-3">Browse Policies</h2>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Policy Title</th>
+                            <th>PDF</th>
+                            <th>Uploaded At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="policyTableBody">
+                        <!-- 动态渲染政策 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Seek Help Section -->
+        <div class="section-card">
+            <h4 class="mb-3">Seek Help</h4>
+            <form class="row g-3 mb-3" id="askForm" onsubmit="askQuestion(event)">
+                <div class="col-md-10">
+                    <textarea class="form-control" id="questionInput" rows="3" placeholder="Ask a question to T-Admin..." required></textarea>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Ask</button>
+                </div>
+            </form>
+            <div id="msgBox"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Status</th>
+                            <th>Answer</th>
+                            <th>Submitted At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="qaTableBody">
+                        <!-- 动态渲染问答 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Level 1 User: Course & Thesis -->
+        <div class="section-card" id="level1Section" style="display:none">
+            <h4 class="mb-3">Level 1 User Functions</h4>
+            <div class="mb-3">
+                <button class="btn btn-outline-primary me-2" id="accessCourseBtn" style="display:none" onclick="loadCourseInfo()">Access Course Info</button>
+                <button class="btn btn-outline-success me-2" id="viewThesisBtn" style="display:none" onclick="loadThesisList()">View Thesis</button>
+            </div>
+            <div id="courseInfoBox" class="mb-3"></div>
+            <div id="thesisListBox" class="mb-3"></div>
+            <div id="downloadMsg" class="mb-3"></div>
+            <div class="mb-3">
+                <h6>Bank Account Balance</h6>
+                <div>Before: <span id="balanceBefore1">--</span> RMB</div>
+                <div>After: <span id="balanceAfter1">--</span> RMB</div>
+            </div>
+            <div id="quotaWarning" class="quota-warning"></div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ----------------- Browse Policies -----------------
+        function loadPolicies() {
+            fetch('/browse_policy/policies')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('policyTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(policy => {
+                        tbody.innerHTML += `
+                        <tr>
+                            <td>${policy.title}</td>
+                            <td>${policy.uploadedAt}</td>
+                            <td>
+                                <a href="/browse_policy/policy/${policy.policyID}/pdf" target="_blank" class="btn btn-sm btn-outline-info">View PDF</a>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No policies found.</td></tr>';
+                }
+            });
+        }
+
+        // ----------------- Seek Help / Q&A -----------------
+        function loadQA() {
+            fetch('/ask/api/questions')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('qaTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(q => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${q.content}${q.answered === 'yes' ? '<span class="star-answered">★</span>' : ''}</td>
+                                <td>${q.answered === 'yes' ? 'Answered' : 'Pending'}</td>
+                                <td>${q.answer || '-'}</td>
+                                <td>${q.submittedAt}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No questions found.</td></tr>';
+                }
+            });
+        }
+
+        function askQuestion(event) {
+            event.preventDefault();
+            const question = document.getElementById('questionInput').value;
+            fetch('/ask/api/question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('msgBox').innerHTML = '<div class="alert alert-success">Question submitted successfully!</div>';
+                    document.getElementById('askForm').reset();
+                    loadQA();
+                } else {
+                    document.getElementById('msgBox').innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            })
+            .catch(() => {
+                document.getElementById('msgBox').innerHTML = '<div class="alert alert-danger">Failed to submit question.</div>';
+            });
+        }
+
+        // ----------------- Level 1 User Functions -----------------
+        function loadCourseInfo() {
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level1_function/api/courses/${organizationId}`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const courses = resp.data;
+                    if (courses.length === 0) {
+                        document.getElementById('courseInfoBox').innerHTML = '<div class="alert alert-warning">No courses found.</div>';
+                        return;
+                    }
+                    let html = '<table class="table table-bordered"><thead><tr><th>Course Name</th><th>Units</th><th>Description</th></tr></thead><tbody>';
+                    courses.forEach(c => {
+                        html += `<tr><td>${c.title}</td><td>${c.units}</td><td>${c.description}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    document.getElementById('courseInfoBox').innerHTML = html;
+                } else {
+                    document.getElementById('courseInfoBox').innerHTML = '<div class="alert alert-danger">Failed to load courses.</div>';
+                }
+            });
+        }
+        function loadThesisList() {
+            // 获取Search Thesis服务的input配置
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level1_function/api/service_input_config/${organizationId}/Search%20Thesis`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const inputConfig = resp.input;
+                    let html = '';
+                    if (typeof inputConfig === 'object' && !Array.isArray(inputConfig)) {
+                        for (const key in inputConfig) {
+                            html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+                        }
+                    } else if (Array.isArray(inputConfig)) {
+                        inputConfig.forEach(key => {
+                            html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+                        });
+                    }
+                    document.getElementById('thesisSearchInputs').innerHTML = html;
+                    var modal = new bootstrap.Modal(document.getElementById('thesisSearchModal'));
+                    modal.show();
+                } else {
+                    alert('未配置Search Thesis服务的输入参数');
+                }
+            });
+        }
+        function submitThesisSearch(event) {
+            event.preventDefault(); // Prevent default form submission
+            const form = document.getElementById('thesisSearchForm');
+            const inputs = form.querySelectorAll('input');
+            let payload = {};
+            inputs.forEach(input => {
+                payload[input.name] = input.value;
+            });
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level1_function/api/search_thesis/${organizationId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('thesisListBox');
+                if (data.status === 'success') {
+                    const results = data.data;
+                    resultsDiv.innerHTML = '';
+                    if (!results || (Array.isArray(results) && results.length === 0)) {
+                        resultsDiv.innerHTML = '<p>No results found</p>';
+                        return;
+                    }
+                    let arr = Array.isArray(results) ? results : [results];
+                    resultsDiv.innerHTML = renderThesisTable(arr);
+                } else {
+                    resultsDiv.innerHTML = `<div class=\"alert alert-danger\">${data.message || 'Search failed'}</div>`;
+                }
+                // Close modal
+                var modal = bootstrap.Modal.getInstance(document.getElementById('thesisSearchModal'));
+                modal.hide();
+            })
+            .catch(error => {
+                alert('Search failed');
+            });
+        }
+
+        function renderThesisTable(arr) {
+            let html = '<table class="table table-striped"><thead><tr>';
+            if (arr.length > 0) {
+                Object.keys(arr[0]).forEach(k => {
+                    html += `<th>${k}</th>`;
+                });
+                html += '<th>Action</th></tr></thead><tbody>';
+                arr.forEach(row => {
+                    html += '<tr>';
+                    Object.values(row).forEach(v => {
+                        html += `<td>${v}</td>`;
+                    });
+                    html += `<td>
+                        <button class="btn btn-sm btn-primary" onclick="downloadThesisPDF('${row.id}', \`${row.title || ''}\`)">Download PDF</button>
+                    </td>`;
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+            return html;
+        }
+
+        function downloadThesisPDF(thesisId, thesisTitle) {
+            const organizationId = "{{ organization_id }}";
+            // 先检查余额
+            fetch(`/level1_function/api/check_balance/${organizationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('balanceBefore1').textContent = data.data.balance.toFixed(2);
+                    document.getElementById('balanceAfter1').textContent = (data.data.balance - data.data.download_fee).toFixed(2);
+                    
+                    if (data.data.balance < data.data.download_fee) {
+                        document.getElementById('quotaWarning').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> Insufficient balance, unable to download. Current balance：${data.data.balance.toFixed(2)} RMB, Download fee：${data.data.download_fee} RMB
+                            </div>`;
+                        return;
+                    }
+                    
+                    // 余额充足，继续下载
+                    fetch(`/level1_function/api/get_thesis_pdf/${organizationId}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({id: thesisId, title: thesisTitle})
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        const contentType = response.headers.get('Content-Type');
+                        if (!contentType || !contentType.includes('application/pdf')) {
+                            return response.text().then(txt => { throw new Error(txt); });
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${thesisTitle || 'file'}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        
+                        // 下载成功后更新余额显示
+                        document.getElementById('balanceBefore1').textContent = (data.data.balance - data.data.download_fee).toFixed(2);
+                        document.getElementById('balanceAfter1').textContent = (data.data.balance - data.data.download_fee).toFixed(2);
+                        document.getElementById('quotaWarning').innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> Download successful! ${data.data.download_fee} RMB deducted
+                            </div>`;
+                    })
+                    .catch((err) => {
+                        document.getElementById('quotaWarning').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> Download failed: ${err.message}
+                            </div>`;
+                    });
+                } else {
+                    document.getElementById('quotaWarning').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${data.message || 'Failed to check balance'}
+                        </div>`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('quotaWarning').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Failed to check balance: ${err.message}
+                    </div>`;
+            });
+        }
+
+        function checkLevel1Functions() {
+            const organizationId = "{{ organization_id }}";
+            const userId = "{{ user_id }}";
+            fetch(`/level1_function/api/level1_functions/${organizationId}/${userId}`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const data = resp.data;
+                    let showSection = false;
+                    if (data.access_course_info) {
+                        document.getElementById('accessCourseBtn').style.display = '';
+                        showSection = true;
+                    } else {
+                        document.getElementById('accessCourseBtn').style.display = 'none';
+                    }
+                    if (data.view_thesis) {
+                        document.getElementById('viewThesisBtn').style.display = '';
+                        showSection = true;
+                    } else {
+                        document.getElementById('viewThesisBtn').style.display = 'none';
+                    }
+                    document.getElementById('level1Section').style.display = showSection ? '' : 'none';
+                } else {
+                    document.getElementById('level1Section').style.display = 'none';
+                }
+            });
+        }
+
+        // 在页面加载时加载问题列表
+        window.onload = function() {
+            loadPolicies();
+            loadQA();
+            checkLevel1Functions();
+        }
+    </script>
+    <div class="modal fade" id="thesisSearchModal" tabindex="-1" aria-labelledby="thesisSearchModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="thesisSearchForm" onsubmit="submitThesisSearch(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="thesisSearchModalLabel">Search Thesis</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="thesisSearchInputs">
+            <!-- 动态生成输入框 -->
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+        </form>
+      </div>
+    </div>
+</body>
+</html>

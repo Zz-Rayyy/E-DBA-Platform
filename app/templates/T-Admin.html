@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>T-Admin Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f7f9fb; }
+        .admin-header { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 32px 24px; margin-bottom: 24px;}
+        .section-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 24px; margin-bottom: 24px;}
+        .table thead { background: #f0f2f5; }
+        .modal-header { background: #f0f2f5; }
+        .btn-primary { background: #0056b3; border: none; }
+        .btn-primary:hover { background: #003d80; }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">E-DBA T-Admin Panel</a>
+            <div class="d-flex">
+                <span class="navbar-text me-3" id="adminName">T-Admin</span>
+                <a href="/user/login" class="btn btn-outline-secondary btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Admin Management -->
+        <div class="admin-header">
+            <h2 class="mb-3">Admin Management</h2>
+            <div class="mb-3">
+                <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addAdminModal">Add New Admin</button>
+            </div>
+            <div id="msgBox"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Admin Type</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminTableBody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Help Requests -->
+        <div class="section-card">
+            <h4 class="mb-3">Help Requests</h4>
+            <div class="mb-3">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="searchRequest" placeholder="Search by user email or request content...">
+                    <select class="form-select" id="statusFilter" style="max-width: 150px;">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>User Email</th>
+                            <th>Request Type</th>
+                            <th>Content</th>
+                            <th>Status</th>
+                            <th>Submitted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestTableBody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Questions Section -->
+        <div class="section-card">
+            <h4 class="mb-3">Pending Questions</h4>
+            <div id="msgBox"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Submitted At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="questionTableBody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Admin Modal -->
+    <div class="modal fade" id="addAdminModal" tabindex="-1" aria-labelledby="addAdminModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="addAdminForm" onsubmit="addAdmin(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addAdminModalLabel">Add New Admin</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+                <label for="adminEmail" class="form-label">Email</label>
+                <input type="email" class="form-control" id="adminEmail" required>
+                <div class="form-text">Enter a valid email address.</div>
+            </div>
+            <div class="mb-3">
+                <label for="adminType" class="form-label">Admin Type</label>
+                <select class="form-select" id="adminType" required>
+                    <option value="E-Admin">E-Admin</option>
+                    <option value="Senior-E-Admin">Senior E-Admin</option>
+                </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Add Admin</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Answer Modal -->
+    <div class="modal fade" id="answerModal" tabindex="-1" aria-labelledby="answerModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="answerForm" onsubmit="submitAnswer(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="answerModalLabel">Answer Question</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="questionId">
+            <div class="mb-3">
+                <label class="form-label">Question</label>
+                <p id="questionContent" class="form-control-plaintext"></p>
+            </div>
+            <div class="mb-3">
+                <label for="answerInput" class="form-label">Your Answer</label>
+                <textarea class="form-control" id="answerInput" rows="4" required></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Submit Answer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showMsg(msg, type="info") {
+            const msgBox = document.createElement('div');
+            msgBox.className = `alert alert-${type} alert-dismissible fade show`;
+            msgBox.innerHTML = `
+                ${msg}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.querySelector('.container').insertBefore(msgBox, document.querySelector('.admin-header'));
+            setTimeout(() => msgBox.remove(), 5000);
+        }
+
+        // Admin Management
+        function loadAdmins() {
+            fetch('/t_admin/api/admins')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('adminTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(admin => {
+                        tbody.innerHTML += `
+                        <tr>
+                            <td>${admin.email}</td>
+                            <td>${admin.adminType}</td>
+                            <td>${admin.createdAt}</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger" onclick="deleteAdmin(${admin.adminID})">Delete</button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No admins found.</td></tr>';
+                }
+            });
+        }
+
+        function addAdmin(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append('email', document.getElementById('adminEmail').value);
+            formData.append('adminType', document.getElementById('adminType').value);
+
+            fetch('/t_admin/api/admin', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('addAdminForm').reset();
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('addAdminModal'));
+                    modal.hide();
+                    loadAdmins();
+                    showMsg('Admin added successfully', 'success');
+                } else {
+                    showMsg(data.message, 'danger');
+                }
+            });
+        }
+
+        function deleteAdmin(adminId) {
+            if (!confirm('Are you sure you want to delete this admin?')) return;
+            fetch(`/t_admin/api/admin/${adminId}`, {method: 'DELETE'})
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    loadAdmins();
+                    showMsg('Admin deleted successfully', 'success');
+                } else {
+                    showMsg(data.message, 'danger');
+                }
+            });
+        }
+
+        // Help Requests
+        function loadHelpRequests() {
+            const searchTerm = document.getElementById('searchRequest').value;
+            const status = document.getElementById('statusFilter').value;
+            
+            fetch(`/t_admin/api/help-requests?search=${searchTerm}&status=${status}`)
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('requestTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(request => {
+                        tbody.innerHTML += `
+                        <tr>
+                            <td>${request.userEmail}</td>
+                            <td>${request.requestType}</td>
+                            <td>${request.content}</td>
+                            <td>
+                                <span class="badge ${getStatusBadgeClass(request.status)}">
+                                    ${request.status}
+                                </span>
+                            </td>
+                            <td>${request.submittedAt}</td>
+                            <td>
+                                ${request.status !== 'resolved' ? `
+                                <button class="btn btn-sm btn-primary" onclick="showResponseModal(${request.requestId})">Respond</button>
+                                ` : ''}
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">No help requests found.</td></tr>';
+                }
+            });
+        }
+
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'pending': return 'bg-warning text-dark';
+                case 'in_progress': return 'bg-info';
+                case 'resolved': return 'bg-success';
+                default: return 'bg-secondary';
+            }
+        }
+
+        function showResponseModal(requestId) {
+            document.getElementById('requestId').value = requestId;
+            var modal = new bootstrap.Modal(document.getElementById('responseModal'));
+            modal.show();
+        }
+
+        function submitResponse(event) {
+            event.preventDefault();
+            const requestId = document.getElementById('requestId').value;
+            const response = document.getElementById('responseContent').value;
+            const status = document.getElementById('requestStatus').value;
+
+            fetch(`/t_admin/api/help-request/${requestId}/respond`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({response, status})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('responseModal'));
+                    modal.hide();
+                    document.getElementById('responseForm').reset();
+                    loadHelpRequests();
+                    showMsg('Response submitted successfully', 'success');
+                } else {
+                    showMsg(data.message, 'danger');
+                }
+            });
+        }
+
+        // Search and filter functionality
+        document.getElementById('searchRequest').addEventListener('input', loadHelpRequests);
+        document.getElementById('statusFilter').addEventListener('change', loadHelpRequests);
+
+        function loadQuestions() {
+            fetch('/answer/api/questions')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('questionTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(q => {
+                        tbody.innerHTML += `
+                        <tr>
+                            <td>${q.response}</td>
+                            <td>${q.submittedAt}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="showAnswerModal(${q.questionID}, '${q.response.replace(/'/g, "\\'")}')">Answer</button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No pending questions found.</td></tr>';
+                }
+            })
+            .catch(() => {
+                showMsg('Failed to load questions.', 'danger');
+            });
+        }
+
+        function showAnswerModal(questionId, questionContent) {
+            document.getElementById('questionId').value = questionId;
+            document.getElementById('questionContent').textContent = questionContent;
+            document.getElementById('answerInput').value = '';
+            var modal = new bootstrap.Modal(document.getElementById('answerModal'));
+            modal.show();
+        }
+
+        function submitAnswer(event) {
+            event.preventDefault();
+            const questionId = document.getElementById('questionId').value;
+            const answer = document.getElementById('answerInput').value;
+
+            fetch(`/answer/api/question/${questionId}/answer`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ answer })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('answerModal'));
+                    modal.hide();
+                    showMsg(data.message, 'success');
+                    loadQuestions();
+                } else {
+                    showMsg(data.message, 'danger');
+                }
+            })
+            .catch(() => {
+                showMsg('Failed to submit answer.', 'danger');
+            });
+        }
+
+        window.onload = function() {
+            loadAdmins();
+            loadHelpRequests();
+            loadQuestions();
+        }
+    </script>
+</body>
+</html>

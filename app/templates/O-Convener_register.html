@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>O-Convener Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f7f9fb; }
+        .register-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 32px 24px; margin: 48px auto; max-width: 600px;}
+        .btn-primary { background: #0056b3; border: none; }
+        .btn-primary:hover { background: #003d80; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="register-card">
+            <h2 class="mb-4 text-center">O-Convener Registration</h2>
+            <form id="registerForm" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="orgFullName" class="form-label">Organization Name (Full)</label>
+                    <input type="text" class="form-control" id="orgFullName" name="orgFullName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="orgShortName" class="form-label">Organization Name (Short)</label>
+                    <input type="text" class="form-control" id="orgShortName" name="orgShortName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="convenerEmail" class="form-label">Convener Email</label>
+                    <input type="email" class="form-control" id="convenerEmail" name="convenerEmail" required>
+                </div>
+                <div class="mb-3">
+                    <label for="proofFile" class="form-label">Proof Document (PDF only)</label>
+                    <input type="file" class="form-control" id="proofFile" name="proofFile" accept="application/pdf" required>
+                </div>
+                <div class="mb-3 d-flex align-items-center">
+                    <button type="button" class="btn btn-outline-primary me-3" id="sendCodeBtn" onclick="sendRegisterCode()">Send Verification Code</button>
+                    <input type="text" class="form-control" id="verificationCode" name="verificationCode" placeholder="Enter verification code" required style="max-width: 220px;">
+                </div>
+                <button type="submit" class="btn btn-primary w-100" id="registerBtn">Register</button>
+            </form>
+            <div id="msgBox" class="mt-3"></div>
+        </div>
+    </div>
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showMsg(msg, type="info") {
+            document.getElementById('msgBox').innerHTML =
+                `<div class="alert alert-${type}" role="alert">${msg}</div>`;
+        }
+
+        function sendRegisterCode() {
+            const email = document.getElementById('convenerEmail').value;
+            if (!email) {
+                showMsg('Please enter the convener email first.', 'warning');
+                return;
+            }
+            document.getElementById('sendCodeBtn').disabled = true;
+            fetch('/register/send-register-code', {
+                method: 'POST',
+                body: new URLSearchParams({email: email}),
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMsg('Verification code sent to: ' + email, 'success');
+                } else {
+                    showMsg(data.message, 'danger');
+                }
+                setTimeout(() => { document.getElementById('sendCodeBtn').disabled = false; }, 60000);
+            })
+            .catch(() => {
+                showMsg('Failed to send verification code.', 'danger');
+                document.getElementById('sendCodeBtn').disabled = false;
+            });
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', function(event){
+            event.preventDefault();
+            const form = document.getElementById('registerForm');
+            const formData = new FormData(form);
+
+            // 前端校验
+            if (!formData.get('orgFullName') || !formData.get('orgShortName') ||
+                !formData.get('convenerEmail') || !formData.get('proofFile') || !formData.get('verificationCode')) {
+                showMsg('Please fill in all required fields.', 'warning');
+                return;
+            }
+            document.getElementById('registerBtn').disabled = true;
+            fetch('/register/register', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showMsg(data.message, 'success');
+                    form.reset();
+                } else {
+                    showMsg(data.message, 'danger');
+                }
+                document.getElementById('registerBtn').disabled = false;
+            })
+            .catch(() => {
+                showMsg('Registration failed.', 'danger');
+                document.getElementById('registerBtn').disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>

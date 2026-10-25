@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Public DataUser Workspace (Level 2)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- SheetJS -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body { background: #f7f9fb; }
+        .workspace-header { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 32px 24px; margin-bottom: 24px;}
+        .section-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 24px; margin-bottom: 24px;}
+        .table thead { background: #f0f2f5; }
+        .btn-primary { background: #0056b3; border: none; }
+        .btn-primary:hover { background: #003d80; }
+        .star-answered { color: gold; font-size: 1.2em; margin-left: 4px; }
+        .quota-warning { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">E-DBA DataUser Workspace</a>
+            <div class="d-flex">
+                <span class="navbar-text me-3" id="userEmail">Email: {{ user_email }}</span>
+                <a href="/user/login" class="btn btn-outline-secondary btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Browse Policies -->
+        <div class="workspace-header">
+            <h2 class="mb-3">Browse Policies</h2>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Policy Title</th>
+                            <th>Uploaded At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="policyTableBody">
+                        <!-- 动态渲染政策 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Seek Help Section -->
+        <div class="section-card">
+            <h4 class="mb-3">Seek Help</h4>
+            <form class="row g-3 mb-3" id="askForm" onsubmit="askQuestion(event)">
+                <div class="col-md-10">
+                    <textarea class="form-control" id="questionInput" rows="3" placeholder="Ask a question to T-Admin..." required></textarea>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Ask</button>
+                </div>
+            </form>
+            <div id="msgBox"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Question</th>
+                            <th>Status</th>
+                            <th>Answer</th>
+                            <th>Submitted At</th>
+                        </tr>
+                    </thead>
+                    <tbody id="qaTableBody">
+                        <!-- 动态渲染问答 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Level 1 User: Course & Thesis -->
+        <div class="section-card" id="level1Section" style="display:none">
+            <h4 class="mb-3">Level 1 User Functions</h4>
+            <div class="mb-3">
+                <button class="btn btn-outline-primary me-2" id="accessCourseBtn" style="display:none" onclick="loadCourseInfo()">Access Course Info</button>
+                <button class="btn btn-outline-success me-2" id="viewThesisBtn" style="display:none" onclick="loadThesisList()">View Thesis</button>
+            </div>
+            <div id="courseInfoBox" class="mb-3"></div>
+            <div id="thesisListBox" class="mb-3"></div>
+            <div id="downloadMsg" class="mb-3"></div>
+            <div class="mb-3">
+                <h6>Bank Account Balance</h6>
+                <div>Before: <span id="balanceBefore1">--</span> RMB</div>
+                <div>After: <span id="balanceAfter1">--</span> RMB</div>
+            </div>
+            <div id="quotaWarning" class="quota-warning"></div>
+        </div>
+
+        <!-- Level 2 User: Student Identity/Record Inquiry -->
+        <div class="section-card">
+            <h4 class="mb-3">Level 2 User Functions</h4>
+            <div class="mb-3">
+                <button class="btn btn-outline-primary me-2" id="identityAuthBtn" style="display:none" onclick="showIdentityAuthModal()">Student Identity Authentication</button>
+                <button class="btn btn-outline-success me-2" id="batchIdentityAuthBtn" onclick="showBatchIdentityAuthModal()">Batch Student Identity Authentication</button>
+                <button class="btn btn-outline-primary me-2" id="gpaQueryBtn" onclick="showGpaQueryModal()">Student GPA Record Access</button>
+                <button class="btn btn-outline-success me-2" id="batchGpaQueryBtn" onclick="showBatchGpaQueryModal()">Batch GPA Record Access</button>
+            </div>
+            <div id="identityResult" class="mb-2"></div>
+            <div id="gpaResult" class="mb-2"></div>
+            <div id="recordResult" class="mb-2"></div>
+            <div id="batchIdentityResult" class="mb-2"></div>
+            <div id="batchRecordResult" class="mb-2"></div>
+            <div class="mb-3">
+                <h6>Bank Account Balance</h6>
+                <div>Before: <span id="balanceBefore2">--</span> RMB</div>
+                <div>After: <span id="balanceAfter2">--</span> RMB</div>
+            </div>
+            <div id="quotaWarning2" class="quota-warning"></div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ----------------- Browse Policies -----------------
+        function loadPolicies() {
+            fetch('/browse_policy/policies')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('policyTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(policy => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${policy.title}</td>
+                                <td>${policy.uploadedAt}</td>
+                                <td>
+                                    <a href="/browse_policy/policy/${policy.policyID}/pdf" target="_blank" class="btn btn-sm btn-outline-info">View PDF</a>
+                                </td>
+                            </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No policies found.</td></tr>';
+                }
+            });
+        }
+
+        // ----------------- Seek Help / Q&A -----------------
+        function loadQA() {
+            fetch('/ask/api/questions')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('qaTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(q => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${q.content}${q.answered === 'yes' ? '<span class="star-answered">★</span>' : ''}</td>
+                                <td>${q.answered === 'yes' ? 'Answered' : 'Pending'}</td>
+                                <td>${q.answer || '-'}</td>
+                                <td>${q.submittedAt}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No questions found.</td></tr>';
+                }
+            });
+        }
+
+        function askQuestion(event) {
+            event.preventDefault();
+            const question = document.getElementById('questionInput').value;
+            fetch('/ask/api/question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ question })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('msgBox').innerHTML = '<div class="alert alert-success">Question submitted successfully!</div>';
+                    document.getElementById('askForm').reset();
+                    loadQA();
+                } else {
+                    document.getElementById('msgBox').innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            })
+            .catch(() => {
+                document.getElementById('msgBox').innerHTML = '<div class="alert alert-danger">Failed to submit question.</div>';
+            });
+        }
+
+        // ----------------- Level 1 User Functions -----------------
+        function loadCourseInfo() {
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level1_function/api/courses/${organizationId}`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const courses = resp.data;
+                    if (courses.length === 0) {
+                        document.getElementById('courseInfoBox').innerHTML = '<div class="alert alert-warning">No courses found.</div>';
+                        return;
+                    }
+                    let html = '<table class="table table-bordered"><thead><tr><th>Course Name</th><th>Units</th><th>Description</th></tr></thead><tbody>';
+                    courses.forEach(c => {
+                        html += `<tr><td>${c.title}</td><td>${c.units}</td><td>${c.description}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    document.getElementById('courseInfoBox').innerHTML = html;
+                } else {
+                    document.getElementById('courseInfoBox').innerHTML = '<div class="alert alert-danger">Failed to load courses.</div>';
+                }
+            });
+        }
+        function loadThesisList() {
+            // 获取Search Thesis服务的input配置
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level1_function/api/service_input_config/${organizationId}/Search%20Thesis`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const inputConfig = resp.input;
+                    let html = '';
+                    if (typeof inputConfig === 'object' && !Array.isArray(inputConfig)) {
+                        for (const key in inputConfig) {
+                            html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+        }
+                    } else if (Array.isArray(inputConfig)) {
+                        inputConfig.forEach(key => {
+                            html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+                        });
+                    }
+                    document.getElementById('thesisSearchInputs').innerHTML = html;
+                    var modal = new bootstrap.Modal(document.getElementById('thesisSearchModal'));
+                    modal.show();
+                } else {
+                    alert('Search Thesis service input parameters not configured');
+                }
+            });
+        }
+        function submitThesisSearch(event) {
+            event.preventDefault();
+            const form = document.getElementById('thesisSearchForm');
+            const inputs = form.querySelectorAll('input');
+            let payload = {};
+            inputs.forEach(input => {
+                payload[input.name] = input.value;
+            });
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level1_function/api/search_thesis/${organizationId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                const resultsDiv = document.getElementById('thesisListBox');
+                if (data.status === 'success') {
+                    const results = data.data;
+                    resultsDiv.innerHTML = '';
+                    if (!results || (Array.isArray(results) && results.length === 0)) {
+                        resultsDiv.innerHTML = '<p>No results found</p>';
+                        return;
+                    }
+                    let arr = Array.isArray(results) ? results : [results];
+                    resultsDiv.innerHTML = renderThesisTable(arr);
+            } else {
+                    resultsDiv.innerHTML = `<div class=\"alert alert-danger\">${data.message || 'Search failed'}</div>`;
+                }
+                var modal = bootstrap.Modal.getInstance(document.getElementById('thesisSearchModal'));
+                modal.hide();
+            })
+            .catch(error => {
+                alert('Search failed');
+            });
+        }
+        function renderThesisTable(arr) {
+            let html = '<table class="table table-striped"><thead><tr>';
+            if (arr.length > 0) {
+                Object.keys(arr[0]).forEach(k => {
+                    html += `<th>${k}</th>`;
+                });
+                html += '<th>Action</th></tr></thead><tbody>';
+                arr.forEach(row => {
+                    html += '<tr>';
+                    Object.values(row).forEach(v => {
+                        html += `<td>${v}</td>`;
+                    });
+                    html += `<td>
+                        <button class="btn btn-sm btn-primary" onclick="downloadThesisPDF('${row.id}', \`${row.title || ''}\`)">Download PDF</button>
+                    </td>`;
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+            return html;
+        }
+        function downloadThesisPDF(thesisId, thesisTitle) {
+            const organizationId = "{{ organization_id }}";
+            // Check balance first
+            fetch(`/level1_function/api/check_balance/${organizationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const originalBalance = data.data.balance;
+                    const downloadFee = data.data.download_fee;
+                    
+                    document.getElementById('balanceBefore1').textContent = originalBalance.toFixed(2);
+                    document.getElementById('balanceAfter1').textContent = (originalBalance - downloadFee).toFixed(2);
+                    
+                    if (originalBalance < downloadFee) {
+                        document.getElementById('quotaWarning').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> Insufficient balance. Current balance: ${originalBalance.toFixed(2)} RMB, Download fee: ${downloadFee} RMB
+                            </div>`;
+                        return;
+                    }
+                    
+                    // Proceed with download if balance is sufficient
+                    fetch(`/level1_function/api/get_thesis_pdf/${organizationId}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({id: thesisId, title: thesisTitle})
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => {
+                                throw new Error(err.message || 'Download failed');
+                            });
+                        }
+                        const contentType = response.headers.get('Content-Type');
+                        if (!contentType || !contentType.includes('application/pdf')) {
+                            return response.text().then(txt => {
+                                throw new Error(txt || 'Invalid response format');
+                            });
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${thesisTitle || 'file'}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        
+                        // Update balance display after successful download
+                        document.getElementById('balanceBefore1').textContent = originalBalance.toFixed(2);
+                        document.getElementById('balanceAfter1').textContent = (originalBalance - downloadFee).toFixed(2);
+                        document.getElementById('quotaWarning').innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> Download successful! Fee deducted: ${downloadFee} RMB
+                            </div>`;
+                    })
+                    .catch((err) => {
+                        document.getElementById('quotaWarning').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> Download failed: ${err.message}
+                            </div>`;
+                    });
+                } else {
+                    document.getElementById('quotaWarning').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${data.message || 'Failed to check balance'}
+                        </div>`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('quotaWarning').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Failed to check balance: ${err.message}
+                    </div>`;
+            });
+        }
+
+        // ----------------- Level 2 User Functions -----------------
+        function showIdentityAuthModal() {
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level2_function/api/identity_input_config/${organizationId}`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const inputConfig = resp.input;
+                    let html = '';
+                    if (typeof inputConfig === 'object' && !Array.isArray(inputConfig)) {
+                        for (const key in inputConfig) {
+                            if (key.toLowerCase() === 'photo') {
+                                html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='file' class='form-control' name='${key}' accept='.jpg,image/jpeg' required></div>`;
+                            } else {
+                                html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+                            }
+                        }
+                    } else if (Array.isArray(inputConfig)) {
+                        inputConfig.forEach(key => {
+                            if (key.toLowerCase() === 'photo') {
+                                html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='file' class='form-control' name='${key}' accept='.jpg,image/jpeg' required></div>`;
+                            } else {
+                                html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+                            }
+                        });
+                    }
+                    document.getElementById('identityAuthInputs').innerHTML = html;
+                    var modal = new bootstrap.Modal(document.getElementById('identityAuthModal'));
+                    modal.show();
+                } else {
+                    alert('No input config for this service');
+                }
+            });
+        }
+        function submitIdentityAuth(event) {
+            event.preventDefault();
+            const form = document.getElementById('identityAuthForm');
+            const inputs = form.querySelectorAll('input');
+            const formData = new FormData();
+            let valid = true;
+            
+            // 验证所有必填字段
+            inputs.forEach(input => {
+                if (input.type === 'file') {
+                    if (input.required && input.files.length === 0) {
+                        valid = false;
+                        input.classList.add('is-invalid');
+                    } else {
+                        input.classList.remove('is-invalid');
+                        if (input.files.length > 0) {
+                            formData.append(input.name, input.files[0]);
+                        }
+                    }
+                } else {
+                    if (input.required && !input.value.trim()) {
+                        valid = false;
+                        input.classList.add('is-invalid');
+                    } else {
+                        input.classList.remove('is-invalid');
+                        formData.append(input.name, input.value.trim());
+                    }
+                }
+            });
+
+            if (!valid) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const organizationId = "{{ organization_id }}";
+            // 先检查余额
+            fetch(`/level2_function/api/check_balance/${organizationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const balance = data.data.balance;
+                    const auth_fee = data.data.auth_fee;
+                    document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                    document.getElementById('balanceAfter2').textContent = (balance - auth_fee).toFixed(2);
+                    
+                    if (balance < auth_fee) {
+                        document.getElementById('quotaWarning2').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> Insufficient balance. Current balance: ${balance.toFixed(2)} RMB, Authentication fee: ${auth_fee} RMB
+                            </div>`;
+                        return;
+                    }
+                    
+                    // 余额充足，继续认证
+                    fetch(`/level2_function/api/identity_auth/${organizationId}`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        const resultDiv = document.getElementById('identityResult');
+                        if (data.status === 'success') {
+                            if (data.data === 'y') {
+                                resultDiv.innerHTML = `
+                                    <div class="alert alert-success">
+                                        <i class="fas fa-check-circle"></i> Authentication successful! Fee deducted: ${auth_fee} RMB
+                                    </div>`;
+                                // 更新余额显示
+                                document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                                document.getElementById('balanceAfter2').textContent = (balance - auth_fee).toFixed(2);
+                            } else {
+                                resultDiv.innerHTML = `
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-times-circle"></i> Authentication failed
+                                    </div>`;
+                            }
+                        } else {
+                            resultDiv.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle"></i> ${data.message || 'Authentication failed'}
+                                </div>`;
+                        }
+                        var modal = bootstrap.Modal.getInstance(document.getElementById('identityAuthModal'));
+                        modal.hide();
+                    })
+                    .catch(error => {
+                        console.error('Authentication request failed:', error);
+                        document.getElementById('identityResult').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> 认证请求失败，请稍后重试
+                            </div>`;
+                    });
+                } else {
+                    document.getElementById('quotaWarning2').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${data.message || '检查余额失败'}
+                        </div>`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('quotaWarning2').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> 检查余额失败：${err.message}
+                    </div>`;
+            });
+        }
+        function inquireIdentity(event) {
+            event.preventDefault();
+            document.getElementById('identityResult').innerHTML = '<div class=\"alert alert-info\">Identity info for student loaded (示例)。</div>';
+            document.getElementById('balanceBefore2').textContent = 90;
+            document.getElementById('balanceAfter2').textContent = 85;
+        }
+        function inquireRecord(event) {
+            event.preventDefault();
+            document.getElementById('recordResult').innerHTML = '<div class=\"alert alert-info\">Record info for student loaded (示例)。</div>';
+            document.getElementById('balanceBefore2').textContent = 85;
+            document.getElementById('balanceAfter2').textContent = 80;
+        }
+        function inquireBatchIdentity(event) {
+            event.preventDefault();
+            document.getElementById('batchIdentityResult').innerHTML = '<div class=\"alert alert-info\">Batch identity inquiry done (示例)。</div>';
+            document.getElementById('balanceBefore2').textContent = 80;
+            document.getElementById('balanceAfter2').textContent = 70;
+        }
+        function inquireBatchRecord(event) {
+            event.preventDefault();
+            document.getElementById('batchRecordResult').innerHTML = '<div class=\"alert alert-info\">Batch record inquiry done (示例)。</div>';
+            document.getElementById('balanceBefore2').textContent = 70;
+            document.getElementById('balanceAfter2').textContent = 60;
+        }
+
+        function checkLevel1Functions() {
+            const organizationId = "{{ organization_id }}";
+            const userId = "{{ user_id }}";
+            fetch(`/level1_function/api/level1_functions/${organizationId}/${userId}`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const data = resp.data;
+                    let showSection = false;
+                    if (data.access_course_info) {
+                        document.getElementById('accessCourseBtn').style.display = '';
+                        showSection = true;
+                    } else {
+                        document.getElementById('accessCourseBtn').style.display = 'none';
+                    }
+                    if (data.view_thesis) {
+                        document.getElementById('viewThesisBtn').style.display = '';
+                        showSection = true;
+                    } else {
+                        document.getElementById('viewThesisBtn').style.display = 'none';
+                    }
+                    document.getElementById('level1Section').style.display = showSection ? '' : 'none';
+                } else {
+                    document.getElementById('level1Section').style.display = 'none';
+                }
+            });
+        }
+
+        function checkLevel2Functions() {
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level2_function/api/level2_functions/${organizationId}`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const data = resp.data;
+                    if (data.identity_auth) {
+                        document.getElementById('identityAuthBtn').style.display = '';
+                    } else {
+                        document.getElementById('identityAuthBtn').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('identityAuthBtn').style.display = 'none';
+                }
+            });
+        }
+
+        // 新增：独立批量认证弹窗
+        function showBatchIdentityAuthModal() {
+            let html = `<div class='mb-3'><label class='form-label'>Batch Excel (.xlsx)</label><input type='file' class='form-control' id='batchIdentityExcel' accept='.xlsx' required></div>`;
+            document.getElementById('batchIdentityAuthInputs').innerHTML = html;
+            var modal = new bootstrap.Modal(document.getElementById('batchIdentityAuthModal'));
+            modal.show();
+        }
+        function submitBatchIdentityAuth(event) {
+            event.preventDefault();
+            const batchFile = document.getElementById('batchIdentityExcel').files[0];
+            if (!batchFile) {
+                alert('Please select an Excel file.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', batchFile);
+            const organizationId = "{{ organization_id }}";
+            
+            // 先检查余额
+            fetch(`/level2_function/api/check_balance/${organizationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const balance = data.data.balance;
+                    const auth_fee = data.data.auth_fee;
+                    
+                    // 读取Excel文件以获取记录数
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const records = XLSX.utils.sheet_to_json(firstSheet);
+                        const total_fee = auth_fee * records.length;
+                        
+                        document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                        document.getElementById('balanceAfter2').textContent = (balance - total_fee).toFixed(2);
+                        
+                        if (balance < total_fee) {
+                            document.getElementById('quotaWarning2').innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle"></i> Insufficient balance. Current balance: ${balance.toFixed(2)} RMB, Total fee: ${total_fee.toFixed(2)} RMB (${records.length} records)
+                                </div>`;
+                            return;
+                        }
+                        
+                        // 余额充足，继续批量认证
+                        fetch(`/level2_function/api/identity_auth_batch/${organizationId}`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            const resultDiv = document.getElementById('identityResult');
+                            if (data.status === 'success') {
+                                let html = `
+                                    <div class="card">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="mb-0">Batch Authentication Results</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="alert alert-success mb-3">
+                                                <i class="fas fa-check-circle"></i> Batch authentication completed! Total fee deducted: ${data.data.total_fee.toFixed(2)} RMB
+                                            </div>
+                                            <div class="alert alert-info mb-3">
+                                                <i class="fas fa-info-circle"></i> Success: ${data.data.y_count}, Failed: ${data.data.n_count}
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-hover">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Row</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>`;
+                                
+                                data.data.results.forEach(r => {
+                                    const statusClass = r.status === 'y' ? 'text-success' : 'text-danger';
+                                    const statusIcon = r.status === 'y' ? '✓' : '✗';
+                                    html += `
+                                        <tr>
+                                            <td>${r.row}</td>
+                                            <td class="${statusClass}">
+                                                <i class="fas fa-${r.status === 'y' ? 'check' : 'times'}-circle"></i>
+                                                ${r.status === 'y' ? 'Success' : 'Failed'}
+                                            </td>
+                                        </tr>`;
+                                });
+                                
+                                html += `
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                                resultDiv.innerHTML = html;
+                                
+                                // 更新余额显示
+                                document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                                document.getElementById('balanceAfter2').textContent = data.data.balance.toFixed(2);
+                            } else {
+                                resultDiv.innerHTML = `
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-circle"></i> ${data.message || 'Batch authentication failed'}
+                                    </div>`;
+                            }
+                            var modal = bootstrap.Modal.getInstance(document.getElementById('batchIdentityAuthModal'));
+                            modal.hide();
+                        })
+                        .catch(() => {
+                            document.getElementById('identityResult').innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle"></i> Batch authentication failed
+                                </div>`;
+                        });
+                    };
+                    reader.readAsArrayBuffer(batchFile);
+                } else {
+                    document.getElementById('quotaWarning2').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${data.message || 'Failed to check balance'}
+                        </div>`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('quotaWarning2').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Failed to check balance: ${err.message}
+                    </div>`;
+            });
+        }
+
+        // GPA Record Access
+        function showGpaQueryModal() {
+            const organizationId = "{{ organization_id }}";
+            fetch(`/level2_function/api/gpa_input_config/${organizationId}`)
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const inputConfig = resp.input;
+                    let html = '';
+                    if (typeof inputConfig === 'object' && !Array.isArray(inputConfig)) {
+                        for (const key in inputConfig) {
+                            html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+                        }
+                    } else if (Array.isArray(inputConfig)) {
+                        inputConfig.forEach(key => {
+                            html += `<div class='mb-3'><label class='form-label'>${key}</label><input type='text' class='form-control' name='${key}' required></div>`;
+                        });
+                    }
+                    document.getElementById('gpaQueryInputs').innerHTML = html;
+                    var modal = new bootstrap.Modal(document.getElementById('gpaQueryModal'));
+                    modal.show();
+                } else {
+                    alert('No input config for this service');
+                }
+            });
+        }
+        function submitGpaQuery(event) {
+            event.preventDefault();
+            const form = document.getElementById('gpaQueryForm');
+            const inputs = form.querySelectorAll('input');
+            let payload = {};
+            let valid = true;
+            inputs.forEach(input => {
+                if (input.required && !input.value) valid = false;
+                payload[input.name] = input.value;
+            });
+            if (!valid) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            const organizationId = "{{ organization_id }}";
+            // 先检查余额
+            fetch(`/level2_function/api/check_balance/${organizationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const balance = data.data.balance;
+                    const query_fee = data.data.query_fee;
+                    document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                    document.getElementById('balanceAfter2').textContent = (balance - query_fee).toFixed(2);
+                    
+                    if (balance < query_fee) {
+                        document.getElementById('quotaWarning2').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> Insufficient balance. Current balance: ${balance.toFixed(2)} RMB, Query fee: ${query_fee} RMB
+                            </div>`;
+                        return;
+                    }
+                    
+                    // 余额充足，继续查询
+                    fetch(`/level2_function/api/gpa_query/${organizationId}`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(payload)
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        const resultDiv = document.getElementById('gpaResult');
+                        if (data.status === 'success') {
+                            let html = `
+                                <div class="card">
+                                    <div class="card-header bg-success text-white">
+                                        <h5 class="mb-0">GPA Query Results</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="alert alert-success mb-3">
+                                            <i class="fas fa-check-circle"></i> Query successful! Fee deducted: ${query_fee} RMB
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-hover">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Field</th>
+                                                        <th>Value</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>`;
+                    
+                    // 遍历数据并格式化显示
+                    for (const [key, value] of Object.entries(data.data)) {
+                        html += `
+                            <tr>
+                                <td class="fw-bold">${key}</td>
+                                <td>${value}</td>
+                            </tr>`;
+                    }
+                    
+                    html += `
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>`;
+                            resultDiv.innerHTML = html;
+                            
+                            // 更新余额显示
+                            document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                            document.getElementById('balanceAfter2').textContent = (balance - query_fee).toFixed(2);
+                        } else {
+                            resultDiv.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle"></i> ${data.message || '查询失败'}
+                                </div>`;
+                        }
+                        var modal = bootstrap.Modal.getInstance(document.getElementById('gpaQueryModal'));
+                        modal.hide();
+                    })
+                    .catch(() => {
+                        document.getElementById('gpaResult').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> 查询失败
+                            </div>`;
+                    });
+                } else {
+                    document.getElementById('quotaWarning2').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${data.message || '检查余额失败'}
+                        </div>`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('quotaWarning2').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> 检查余额失败：${err.message}
+                    </div>`;
+            });
+        }
+        function showBatchGpaQueryModal() {
+            let html = `<div class='mb-3'><label class='form-label'>Batch Excel (.xlsx)</label><input type='file' class='form-control' id='batchGpaExcel' accept='.xlsx' required></div>`;
+            document.getElementById('batchGpaQueryInputs').innerHTML = html;
+            var modal = new bootstrap.Modal(document.getElementById('batchGpaQueryModal'));
+            modal.show();
+        }
+        function submitBatchGpaQuery(event) {
+            event.preventDefault();
+            const batchFile = document.getElementById('batchGpaExcel').files[0];
+            if (!batchFile) {
+                alert('Please select an Excel file.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', batchFile);
+            const organizationId = "{{ organization_id }}";
+            
+            // 先检查余额
+            fetch(`/level2_function/api/check_balance/${organizationId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const balance = data.data.balance;
+                    const query_fee = data.data.query_fee;
+                    
+                    // 读取Excel文件以获取记录数
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const records = XLSX.utils.sheet_to_json(firstSheet);
+                        const total_fee = query_fee * records.length;
+                        
+                        document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                        document.getElementById('balanceAfter2').textContent = (balance - total_fee).toFixed(2);
+                        
+                        if (balance < total_fee) {
+                            document.getElementById('quotaWarning2').innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle"></i> Insufficient balance. Current balance: ${balance.toFixed(2)} RMB, Total fee: ${total_fee.toFixed(2)} RMB (${records.length} records)
+                                </div>`;
+                            return;
+                        }
+                        
+                        // 余额充足，继续批量查询
+                        fetch(`/level2_function/api/gpa_query_batch/${organizationId}`, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            const resultDiv = document.getElementById('gpaResult');
+                            if (data.status === 'success') {
+                                let html = `
+                                    <div class="card">
+                                        <div class="card-header bg-primary text-white">
+                                            <h5 class="mb-0">Batch GPA Query Results</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="alert alert-success mb-3">
+                                                <i class="fas fa-check-circle"></i> Batch query completed! Total fee deducted: ${data.data.total_fee.toFixed(2)} RMB
+                                            </div>
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-hover">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>No.</th>
+                                                            <th>Status</th>
+                                                            <th>Details</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>`;
+                                
+                                data.data.results.forEach((r, index) => {
+                                    const statusClass = r.status === 'success' ? 'text-success' : 'text-danger';
+                                    const statusIcon = r.status === 'success' ? '✓' : '✗';
+                                    html += `
+                                        <tr>
+                                            <td>${index + 1}</td>
+                                            <td class="${statusClass}">
+                                                <i class="fas fa-${r.status === 'success' ? 'check' : 'times'}-circle"></i>
+                                                ${r.status === 'success' ? 'Success' : 'Failed'}
+                                            </td>
+                                            <td>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-bordered mb-0">
+                                                        <tbody>`;
+                                    
+                                    if (r.data) {
+                                        for (const [key, value] of Object.entries(r.data)) {
+                                            html += `
+                                                <tr>
+                                                    <td class="fw-bold">${key}</td>
+                                                    <td>${value}</td>
+                                                </tr>`;
+                                        }
+                                    }
+                                    
+                                    html += `
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        </tr>`;
+                                });
+                                
+                                html += `
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                                resultDiv.innerHTML = html;
+                                
+                                // 更新余额显示
+                                document.getElementById('balanceBefore2').textContent = balance.toFixed(2);
+                                document.getElementById('balanceAfter2').textContent = data.data.balance.toFixed(2);
+                            } else {
+                                resultDiv.innerHTML = `
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-circle"></i> ${data.message || 'Batch query failed'}
+                                    </div>`;
+                            }
+                            var modal = bootstrap.Modal.getInstance(document.getElementById('batchGpaQueryModal'));
+                            modal.hide();
+                        })
+                        .catch(() => {
+                            document.getElementById('gpaResult').innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle"></i> Batch query failed
+                                </div>`;
+                        });
+                    };
+                    reader.readAsArrayBuffer(batchFile);
+                } else {
+                    document.getElementById('quotaWarning2').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle"></i> ${data.message || 'Failed to check balance'}
+                        </div>`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('quotaWarning2').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Failed to check balance: ${err.message}
+                    </div>`;
+            });
+        }
+
+        // 在页面加载时加载问题列表
+        window.onload = function() {
+            loadPolicies();
+            loadQA();
+            checkLevel1Functions();
+            checkLevel2Functions();
+        }
+    </script>
+    <div class="modal fade" id="thesisSearchModal" tabindex="-1" aria-labelledby="thesisSearchModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="thesisSearchForm" onsubmit="submitThesisSearch(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="thesisSearchModalLabel">Search Thesis</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="thesisSearchInputs">
+            <!-- 动态生成输入框 -->
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="modal fade" id="identityAuthModal" tabindex="-1" aria-labelledby="identityAuthModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="identityAuthForm" onsubmit="submitIdentityAuth(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="identityAuthModalLabel">Student Identity Authentication</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="identityAuthInputs">
+            <!-- 动态生成输入框 -->
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="modal fade" id="batchIdentityAuthModal" tabindex="-1" aria-labelledby="batchIdentityAuthModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="batchIdentityAuthForm" onsubmit="submitBatchIdentityAuth(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="batchIdentityAuthModalLabel">Batch Student Identity Authentication</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="batchIdentityAuthInputs">
+            <!-- 动态生成输入框 -->
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="modal fade" id="gpaQueryModal" tabindex="-1" aria-labelledby="gpaQueryModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="gpaQueryForm" onsubmit="submitGpaQuery(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="gpaQueryModalLabel">Student GPA Record Access</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="gpaQueryInputs">
+            <!-- 动态生成输入框 -->
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="modal fade" id="batchGpaQueryModal" tabindex="-1" aria-labelledby="batchGpaQueryModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="batchGpaQueryForm" onsubmit="submitBatchGpaQuery(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="batchGpaQueryModalLabel">Batch GPA Record Access</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="batchGpaQueryInputs">
+            <!-- 动态生成输入框 -->
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+</body>
+</html>

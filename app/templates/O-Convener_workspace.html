@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>O-Convener Workspace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body { background: #f7f9fb; }
+        .workspace-header { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 32px 24px; margin-bottom: 24px;}
+        .section-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 24px; margin-bottom: 24px;}
+        .table thead { background: #f0f2f5; }
+        .modal-header { background: #f0f2f5; }
+        .btn-primary { background: #0056b3; border: none; }
+        .btn-primary:hover { background: #003d80; }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">E-DBA O-Convener Workspace</a>
+            <div class="d-flex">
+                <span class="navbar-text me-3" id="orgName">Organization: {{ org_name }}</span>
+                <span class="navbar-text me-3" id="userEmail">Email: {{ user_email }}</span>
+                <a href="/user/login" class="btn btn-outline-secondary btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Member Management -->
+        <div class="workspace-header">
+            <h2 class="mb-3">Member Management</h2>
+            <div class="mb-3">
+                <button class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addMemberModal">Add Member</button>
+                <button class="btn btn-outline-primary me-2" onclick="downloadTemplate()">Download Excel Template</button>
+                <input type="file" id="uploadExcel" accept=".xlsx,.xls" style="display:none" onchange="uploadExcelFile(this)">
+                <button class="btn btn-outline-success" onclick="document.getElementById('uploadExcel').click()">Batch Upload Members</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Access Level</th>
+                            <th>Thesis Download Quota</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="memberTableBody">
+                        <!-- Render member data dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Service Management -->
+        <div class="section-card">
+            <h4 class="mb-3">Service Management</h4>
+            <div class="row">
+                <!-- Course Information Sharing -->
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="service1">
+                                <label class="form-check-label" for="service1">
+                                    Course Information Sharing (Free)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="courseVisibility" id="coursePrivate" value="private" checked>
+                                <label class="form-check-label" for="coursePrivate">
+                                    Organization Only
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="courseVisibility" id="coursePublic" value="public">
+                                <label class="form-check-label" for="coursePublic">
+                                    Public to All
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="courseVisibility" id="courseSelective" value="part">
+                                <label class="form-check-label" for="courseSelective">
+                                    Selective Organizations
+                                </label>
+                            </div>
+                            <div id="courseSelectiveOrgs" class="mt-2" style="display: none;">
+                                <select class="form-select" id="courseOrgsSelect" multiple></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Student Identity Authentication -->
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="service2">
+                                <label class="form-check-label" for="service2">
+                                    Student Identity Authentication
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="authVisibility" id="authPrivate" value="private" checked>
+                                <label class="form-check-label" for="authPrivate">
+                                    Organization Only
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="authVisibility" id="authPublic" value="public">
+                                <label class="form-check-label" for="authPublic">
+                                    Public to All
+                                </label>
+                            </div>
+                    <div class="form-check">
+                                <input class="form-check-input" type="radio" name="authVisibility" id="authSelective" value="part">
+                                <label class="form-check-label" for="authSelective">
+                                    Selective Organizations
+                                </label>
+                            </div>
+                            <div id="authSelectiveOrgs" class="mt-2" style="display: none;">
+                                <select class="form-select" id="authOrgsSelect" multiple></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Student GPA Record Access -->
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="service3">
+                                <label class="form-check-label" for="service3">
+                                    Student GPA Record Access
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="gpaVisibility" id="gpaPrivate" value="private" checked>
+                                <label class="form-check-label" for="gpaPrivate">
+                                    Organization Only
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="gpaVisibility" id="gpaPublic" value="public">
+                                <label class="form-check-label" for="gpaPublic">
+                                    Public to All
+                                </label>
+                            </div>
+                    <div class="form-check">
+                                <input class="form-check-input" type="radio" name="gpaVisibility" id="gpaSelective" value="part">
+                                <label class="form-check-label" for="gpaSelective">
+                                    Selective Organizations
+                                </label>
+                            </div>
+                            <div id="gpaSelectiveOrgs" class="mt-2" style="display: none;">
+                                <select class="form-select" id="gpaOrgsSelect" multiple></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Thesis Sharing -->
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="service4">
+                                <label class="form-check-label" for="service4">
+                                    Thesis Sharing
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="thesisVisibility" id="thesisPrivate" value="private" checked>
+                                <label class="form-check-label" for="thesisPrivate">
+                                    Organization Only
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="thesisVisibility" id="thesisPublic" value="public">
+                                <label class="form-check-label" for="thesisPublic">
+                                    Public to All
+                                </label>
+                            </div>
+                    <div class="form-check">
+                                <input class="form-check-input" type="radio" name="thesisVisibility" id="thesisSelective" value="part">
+                                <label class="form-check-label" for="thesisSelective">
+                                    Selective Organizations
+                                </label>
+                            </div>
+                            <div id="thesisSelectiveOrgs" class="mt-2" style="display: none;">
+                                <select class="form-select" id="thesisOrgsSelect" multiple></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button class="btn btn-primary" onclick="saveServiceConfig()">Save Service Configuration</button>
+                <span id="serviceMsg" class="ms-3"></span>
+            </div>
+        </div>
+
+        <!-- Bank Account Information -->
+        <div class="section-card">
+            <h4 class="mb-3">Bank Account Information</h4>
+            <div id="currentBankAccount" class="mb-4" style="display: none;">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Current Bank Account</h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p><strong>Bank Name:</strong> <span id="currentBank"></span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Account Number:</strong> <span id="currentAccount"></span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Account Name:</strong> <span id="currentName"></span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p><strong>Balance:</strong> <span id="currentBalance"></span> RMB</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-warning" onclick="showEditBankAccount()">Edit Account</button>
+                    </div>
+                </div>
+            </div>
+            <form id="bankAccountForm" class="row g-3" onsubmit="saveBankAccount(event)">
+                <div class="col-md-3">
+                    <label for="bankName" class="form-label">Bank Name</label>
+                    <input type="text" class="form-control" id="bankName" name="bank" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="accountNo" class="form-label">Account Number</label>
+                    <input type="text" class="form-control" id="accountNo" name="account" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="accountName" class="form-label">Account Name</label>
+                    <input type="text" class="form-control" id="accountName" name="name" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="accountPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="accountPassword" name="password" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="accountBalance" class="form-label">Initial Balance (RMB)</label>
+                    <input type="number" class="form-control" id="accountBalance" name="balance" min="0" step="0.0000000001" required>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary" id="saveBankAccountBtn">Save Bank Account</button>
+                </div>
+            </form>
+            <div id="bankAccountMsg" class="mt-2"></div>
+        </div>
+
+        <!-- Membership Fee Payment -->
+        <div class="section-card">
+            <h4 class="mb-3">Membership Fee Payment</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Fee Structure</h5>
+                            <div id="feeStructure">
+                                <p>Loading fee structure...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Payment Summary</h5>
+                            <div id="paymentSummary">
+                                <p>Loading member information...</p>
+                            </div>
+                            <button class="btn btn-primary mt-3" onclick="payMembershipFees()" id="payButton" disabled>Pay Membership Fees</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="paymentMsg" class="mt-3"></div>
+        </div>
+
+        <!-- Organization Logs Section -->
+        <div class="section-card">
+            <h4 class="mb-3">Organization Logs</h4>
+            <form class="row g-3 mb-3" onsubmit="searchLogs(event)">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" placeholder="Filter by user email" id="logUser">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="logAction">
+                        <option value="">All Actions</option>
+                        <option value="Thesis Download Success">Thesis Download Success</option>
+                        <option value="Thesis Download Failed">Thesis Download Failed</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <input type="date" class="form-control" id="logDate">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-outline-primary">Search</button>
+                </div>
+            </form>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="organizationLogTableBody">
+                        <!-- Logs will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Email Box Section -->
+        <div class="section-card">
+            <h4 class="mb-3">Email Box</h4>
+            <div class="list-group" id="emailBox">
+                <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">Welcome to E-DBA</h5>
+                        <small>2024-05-01</small>
+                    </div>
+                    <p class="mb-1">Your registration has been approved. You can now manage your organization workspace.</p>
+                    <small>System Notification</small>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Member Modal -->
+    <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="addMemberForm" onsubmit="addMember(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addMemberModalLabel">Add Member</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+                <label for="memberName" class="form-label">Name</label>
+                <input type="text" class="form-control" id="memberName" required>
+            </div>
+            <div class="mb-3">
+                <label for="memberEmail" class="form-label">Email (support * wildcard)</label>
+                <input type="text" class="form-control" id="memberEmail" required>
+            </div>
+            <div class="mb-3">
+                <label for="memberAccess" class="form-label">Access Level</label>
+                <select class="form-select" id="memberAccess" required>
+                    <option value="1">1 (Lowest)</option>
+                    <option value="2">2</option>
+                    <option value="3">3 (Highest)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="memberQuota" class="form-label">Thesis Download Quota (RMB)</label>
+                <input type="number" class="form-control" id="memberQuota" min="0" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Add</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Member Modal -->
+    <div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="editMemberForm" onsubmit="updateMember(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editMemberModalLabel">Edit Member</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editMemberUserID" />
+            <div class="mb-3">
+                <label for="editMemberName" class="form-label">Name</label>
+                <input type="text" class="form-control" id="editMemberName" required>
+            </div>
+            <div class="mb-3">
+                <label for="editMemberAccess" class="form-label">Access Level</label>
+                <select class="form-select" id="editMemberAccess" required>
+                    <option value="1">1 (Lowest)</option>
+                    <option value="2">2</option>
+                    <option value="3">3 (Highest)</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="editMemberQuota" class="form-label">Thesis Download Quota (RMB)</label>
+                <input type="number" class="form-control" id="editMemberQuota" min="0" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Service Config Modal -->
+    <div class="modal fade" id="serviceConfigModal" tabindex="-1" aria-labelledby="serviceConfigModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form class="modal-content" id="serviceConfigForm" onsubmit="saveServiceConfig(event)">
+          <div class="modal-header">
+            <h5 class="modal-title" id="serviceConfigModalLabel">Service & Charges Configuration</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label">Database Interface Info</label>
+                <input type="text" class="form-control" id="dbInterface" placeholder="Enter database interface address">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Student Identity Authentication Fee (RMB/use)</label>
+                <input type="number" class="form-control" id="authFee" min="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Thesis Sharing Fee (RMB/use)</label>
+                <input type="number" class="form-control" id="thesisFee" min="0">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 动态加载所有组织到下拉框
+        function loadOrganizations() {
+            fetch('/service_manage/api/organizations')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    ['courseOrgsSelect', 'authOrgsSelect', 'gpaOrgsSelect', 'thesisOrgsSelect'].forEach(id => {
+                        const select = document.getElementById(id);
+                        select.innerHTML = '';
+                        data.data.forEach(org => {
+                            select.innerHTML += `<option value="${org.organizationID}">${org.organizationNameInFull}</option>`;
+                        });
+                    });
+                }
+            });
+        }
+
+        // 选择"部分公开"时显示下拉框，并允许取消选择
+        function setupServiceVisibilityRadios() {
+            [
+                {radio: 'courseSelective', div: 'courseSelectiveOrgs', select: 'courseOrgsSelect'},
+                {radio: 'authSelective', div: 'authSelectiveOrgs', select: 'authOrgsSelect'},
+                {radio: 'gpaSelective', div: 'gpaSelectiveOrgs', select: 'gpaOrgsSelect'},
+                {radio: 'thesisSelective', div: 'thesisSelectiveOrgs', select: 'thesisOrgsSelect'}
+            ].forEach(item => {
+                document.getElementById(item.radio).addEventListener('change', function() {
+                    document.getElementById(item.div).style.display = this.checked ? 'block' : 'none';
+                });
+                // 其他radio切换时隐藏
+                const radios = document.getElementsByName(item.radio.replace('Selective', 'Visibility'));
+                radios.forEach(r => {
+                    if (r.id !== item.radio) {
+                        r.addEventListener('change', function() {
+                            document.getElementById(item.div).style.display = 'none';
+                        });
+                    }
+                });
+                // 多选框允许取消选择
+                document.getElementById(item.select).addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    const option = e.target;
+                    option.selected = !option.selected;
+                    return false;
+                });
+            });
+        }
+
+        // 回显服务配置
+        function loadServiceConfig() {
+            fetch('/service_manage/api/services')
+            .then(res => res.json())
+            .then(resp => {
+                if (resp.status === 'success') {
+                    const data = resp.data;
+                    // 课程
+                    document.getElementById('service1').checked = data['Course Information Sharing'].enabled;
+                    document.getElementById('coursePrivate').checked = data['Course Information Sharing'].visibility === 'private';
+                    document.getElementById('coursePublic').checked = data['Course Information Sharing'].visibility === 'public';
+                    document.getElementById('courseSelective').checked = data['Course Information Sharing'].visibility === 'part';
+                    document.getElementById('courseSelectiveOrgs').style.display = data['Course Information Sharing'].visibility === 'part' ? 'block' : 'none';
+                    Array.from(document.getElementById('courseOrgsSelect').options).forEach(opt => {
+                        opt.selected = data['Course Information Sharing'].selectedOrgs.includes(opt.value) || data['Course Information Sharing'].selectedOrgs.includes(parseInt(opt.value));
+                    });
+                    // 身份认证
+                    document.getElementById('service2').checked = data['Student Identity Authentication'].enabled;
+                    document.getElementById('authPrivate').checked = data['Student Identity Authentication'].visibility === 'private';
+                    document.getElementById('authPublic').checked = data['Student Identity Authentication'].visibility === 'public';
+                    document.getElementById('authSelective').checked = data['Student Identity Authentication'].visibility === 'part';
+                    document.getElementById('authSelectiveOrgs').style.display = data['Student Identity Authentication'].visibility === 'part' ? 'block' : 'none';
+                    Array.from(document.getElementById('authOrgsSelect').options).forEach(opt => {
+                        opt.selected = data['Student Identity Authentication'].selectedOrgs.includes(opt.value) || data['Student Identity Authentication'].selectedOrgs.includes(parseInt(opt.value));
+                    });
+                    // GPA
+                    document.getElementById('service3').checked = data['Student GPA Record Access'].enabled;
+                    document.getElementById('gpaPrivate').checked = data['Student GPA Record Access'].visibility === 'private';
+                    document.getElementById('gpaPublic').checked = data['Student GPA Record Access'].visibility === 'public';
+                    document.getElementById('gpaSelective').checked = data['Student GPA Record Access'].visibility === 'part';
+                    document.getElementById('gpaSelectiveOrgs').style.display = data['Student GPA Record Access'].visibility === 'part' ? 'block' : 'none';
+                    Array.from(document.getElementById('gpaOrgsSelect').options).forEach(opt => {
+                        opt.selected = data['Student GPA Record Access'].selectedOrgs.includes(opt.value) || data['Student GPA Record Access'].selectedOrgs.includes(parseInt(opt.value));
+                    });
+                    // 论文
+                    document.getElementById('service4').checked = data['Thesis Sharing'].enabled;
+                    document.getElementById('thesisPrivate').checked = data['Thesis Sharing'].visibility === 'private';
+                    document.getElementById('thesisPublic').checked = data['Thesis Sharing'].visibility === 'public';
+                    document.getElementById('thesisSelective').checked = data['Thesis Sharing'].visibility === 'part';
+                    document.getElementById('thesisSelectiveOrgs').style.display = data['Thesis Sharing'].visibility === 'part' ? 'block' : 'none';
+                    Array.from(document.getElementById('thesisOrgsSelect').options).forEach(opt => {
+                        opt.selected = data['Thesis Sharing'].selectedOrgs.includes(opt.value) || data['Thesis Sharing'].selectedOrgs.includes(parseInt(opt.value));
+                    });
+                }
+            });
+        }
+
+        // 保存服务配置
+        function saveServiceConfig() {
+            const config = {
+                'Course Information Sharing': {
+                    enabled: document.getElementById('service1').checked,
+                    visibility: document.querySelector('input[name="courseVisibility"]:checked').value,
+                    selectedOrgs: Array.from(document.getElementById('courseOrgsSelect').selectedOptions).map(opt => opt.value)
+                },
+                'Student Identity Authentication': {
+                    enabled: document.getElementById('service2').checked,
+                    visibility: document.querySelector('input[name="authVisibility"]:checked').value,
+                    selectedOrgs: Array.from(document.getElementById('authOrgsSelect').selectedOptions).map(opt => opt.value)
+                },
+                'Student GPA Record Access': {
+                    enabled: document.getElementById('service3').checked,
+                    visibility: document.querySelector('input[name="gpaVisibility"]:checked').value,
+                    selectedOrgs: Array.from(document.getElementById('gpaOrgsSelect').selectedOptions).map(opt => opt.value)
+                },
+                'Thesis Sharing': {
+                    enabled: document.getElementById('service4').checked,
+                    visibility: document.querySelector('input[name="thesisVisibility"]:checked').value,
+                    selectedOrgs: Array.from(document.getElementById('thesisOrgsSelect').selectedOptions).map(opt => opt.value)
+                }
+            };
+            fetch('/service_manage/api/services', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(config)
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('serviceMsg').innerText = data.message;
+                document.getElementById('serviceMsg').className = data.status === 'success' ? 'text-success' : 'text-danger';
+            });
+        }
+
+        // 其余原有JS代码（成员管理、银行账户、批量上传等）全部保持不变
+        function loadMembers() {
+            fetch('/manage_member/api/members')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('memberTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(m => {
+                        tbody.innerHTML += `
+                        <tr>
+                            <td>${m.name || ''}</td>
+                            <td>${m.email}</td>
+                            <td>${m.accessRight}</td>
+                            <td>${m.quota} RMB</td>
+                            <td>
+                                <button class="btn btn-sm btn-warning me-1" onclick="showEditMemberModal(${m.userID}, '${m.name}', ${m.accessRight}, ${m.quota})">Edit</button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteMember(${m.userID})">Delete</button>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center">No members found.</td></tr>';
+                }
+            });
+        }
+
+        function addMember(event) {
+            event.preventDefault();
+            const formData = new FormData();
+            formData.append('name', document.getElementById('memberName').value);
+            formData.append('email', document.getElementById('memberEmail').value);
+            formData.append('accessRight', document.getElementById('memberAccess').value);
+            formData.append('quota', document.getElementById('memberQuota').value);
+
+            fetch('/manage_member/api/member', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('addMemberForm').reset();
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('addMemberModal'));
+                    modal.hide();
+                    loadMembers();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        // Excel 批量上传成员
+        function uploadExcelFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                // 假设第一行为表头
+                const header = json[0];
+                const nameIdx = header.indexOf('name');
+                const emailIdx = header.indexOf('email');
+                const accessRightIdx = header.indexOf('accessRight');
+                const quotaIdx = header.indexOf('quota');
+                if (nameIdx === -1 || emailIdx === -1 || accessRightIdx === -1 || quotaIdx === -1) {
+                    alert('The Excel header must include：name, email, accessRight, quota');
+                    return;
+                }
+                const members = [];
+                for (let i = 1; i < json.length; i++) {
+                    const row = json[i];
+                    if (!row[nameIdx] || !row[emailIdx]) continue;
+                    members.push({
+                        name: row[nameIdx],
+                        email: row[emailIdx],
+                        accessRight: Number(row[accessRightIdx]),
+                        quota: Number(row[quotaIdx])
+                    });
+                }
+                if (members.length === 0) {
+                    alert('No valid member data');
+                    return;
+                }
+                // 发送到后端
+                fetch('/manage_member/api/members/batch', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({members: members})
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Batch addition successful');
+                        loadMembers();
+                    } else {
+                        alert('Batch addition failed: ' + data.message);
+                    }
+                })
+                .catch(() => {
+                    alert('Batch addition failed');
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showEditMemberModal(userID, name, accessRight, quota) {
+            document.getElementById('editMemberUserID').value = userID;
+            document.getElementById('editMemberName').value = name;
+            document.getElementById('editMemberAccess').value = accessRight;
+            document.getElementById('editMemberQuota').value = quota;
+            var modal = new bootstrap.Modal(document.getElementById('editMemberModal'));
+            modal.show();
+        }
+
+        function updateMember(event) {
+            event.preventDefault();
+            const userID = document.getElementById('editMemberUserID').value;
+            const formData = new FormData();
+            formData.append('name', document.getElementById('editMemberName').value);
+            formData.append('accessRight', document.getElementById('editMemberAccess').value);
+            formData.append('quota', document.getElementById('editMemberQuota').value);
+
+            fetch('/manage_member/api/member/' + userID, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('editMemberModal'));
+                    modal.hide();
+                    loadMembers();
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        function deleteMember(userID) {
+            if (confirm('Are you sure you want to delete this member?')) {
+                fetch('/manage_member/api/member/' + userID, {method: 'DELETE'})
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        loadMembers();
+                    } else {
+                        alert(data.message);
+                    }
+                });
+            }
+        }
+
+        function downloadTemplate() {
+            // 提供一个简单的Excel模板下载
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet([
+                ['name', 'email', 'accessRight', 'quota'],
+                ['Kobe', 's230026203@mail.uic.edu.cn', 1, 10],
+                ['Even', 's230026204@mail.uic.edu.cn', 1, 10],
+                ['Jack', 's230026205@mail.uic.edu.cn', 1, 10]
+            ]);
+            XLSX.utils.book_append_sheet(wb, ws, 'Members');
+            XLSX.writeFile(wb, 'member_template.xlsx');
+        }
+
+        // 银行账户相关函数
+        function loadBankAccount() {
+            fetch('/set_up_bank_account/api/bank_account')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' && data.data) {
+                    // 显示当前账户信息
+                    document.getElementById('currentBank').textContent = data.data.bank;
+                    document.getElementById('currentAccount').textContent = data.data.account;
+                    document.getElementById('currentName').textContent = data.data.name;
+                    document.getElementById('currentBalance').textContent = data.data.balance;
+                    document.getElementById('currentBankAccount').style.display = 'block';
+                    document.getElementById('bankAccountForm').style.display = 'none';
+                } else {
+                    document.getElementById('currentBankAccount').style.display = 'none';
+                    document.getElementById('bankAccountForm').style.display = 'block';
+                }
+            });
+        }
+
+        function showEditBankAccount() {
+            fetch('/set_up_bank_account/api/bank_account')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' && data.data) {
+                    document.getElementById('bankName').value = data.data.bank;
+                    document.getElementById('accountNo').value = data.data.account;
+                    document.getElementById('accountName').value = data.data.name;
+                    document.getElementById('accountBalance').value = data.data.balance;
+                    document.getElementById('currentBankAccount').style.display = 'none';
+                    document.getElementById('bankAccountForm').style.display = 'block';
+                    document.getElementById('saveBankAccountBtn').textContent = 'Update Bank Account';
+                }
+            });
+        }
+
+        function saveBankAccount(event) {
+            event.preventDefault();
+            const form = document.getElementById('bankAccountForm');
+            const formData = new FormData(form);
+            
+            fetch('/set_up_bank_account/api/save_bank_account', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('bankAccountMsg').innerHTML =
+                    `<div class="alert alert-${data.status === 'success' ? 'success' : 'danger'}" role="alert">${data.message}</div>`;
+                if (data.status === 'success') {
+                    form.reset();
+                    document.getElementById('saveBankAccountBtn').textContent = 'Save Bank Account';
+                    loadBankAccount();
+                }
+            })
+            .catch(() => {
+                document.getElementById('bankAccountMsg').innerHTML =
+                    `<div class="alert alert-danger" role="alert">Failed to save bank account info.</div>`;
+            });
+        }
+
+        function setQuotaBatch(event) {
+            event.preventDefault();
+            alert('Please implement batch quota backend interface and frontend logic');
+        }
+
+        // Load organization logs
+        function loadOrganizationLogs() {
+            const organizationId = "{{ organization_id }}";
+            console.log('Loading logs for organization:', organizationId);
+            
+            fetch(`/log/api/logs/${organizationId}`)
+            .then(res => {
+                console.log('Response status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('Received data:', data);
+                const tbody = document.getElementById('organizationLogTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(log => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${log.timestamp}</td>
+                                <td>${log.user.email}</td>
+                                <td>${log.action}</td>
+                                <td>${log.details || '-'}</td>
+                            </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No logs found.</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Failed to load logs:', error);
+                document.getElementById('organizationLogTableBody').innerHTML = 
+                    '<tr><td colspan="4" class="text-center text-danger">Failed to load logs. Please check console for details.</td></tr>';
+            });
+        }
+
+        // Search logs
+        function searchLogs(event) {
+            event.preventDefault();
+            const organizationId = "{{ organization_id }}";
+            const userEmail = document.getElementById('logUser').value;
+            const action = document.getElementById('logAction').value;
+            const date = document.getElementById('logDate').value;
+
+            console.log('Searching logs with params:', { userEmail, action, date });
+
+            fetch(`/log/api/logs/${organizationId}?user=${userEmail}&action=${action}&date=${date}`)
+            .then(res => {
+                console.log('Search response status:', res.status);
+                return res.json();
+            })
+            .then(data => {
+                console.log('Search received data:', data);
+                const tbody = document.getElementById('organizationLogTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    data.data.forEach(log => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${log.timestamp}</td>
+                                <td>${log.user.email}</td>
+                                <td>${log.action}</td>
+                                <td>${log.details || '-'}</td>
+                            </tr>`;
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">No logs found.</td></tr>';
+                }
+            })
+            .catch(error => {
+                console.error('Failed to search logs:', error);
+                document.getElementById('organizationLogTableBody').innerHTML = 
+                    '<tr><td colspan="4" class="text-center text-danger">Failed to search logs. Please check console for details.</td></tr>';
+            });
+        }
+
+        // Email Box: Example dynamic rendering
+        function loadEmailBox() {
+            // Replace with your actual API endpoint
+            // Example static data for demonstration
+            const data = [
+                {
+                    subject: "Welcome to E-DBA",
+                    date: "2024-05-01",
+                    content: "Your registration has been approved. You can now manage your organization workspace.",
+                    sender: "System Notification"
+                },
+                {
+                    subject: "Membership Fee Reminder",
+                    date: "2024-05-10",
+                    content: "Please pay the membership fee for new members before 2024-05-20.",
+                    sender: "E-DBA Admin"
+                }
+            ];
+            const emailBox = document.getElementById('emailBox');
+            emailBox.innerHTML = '';
+            data.forEach(email => {
+                emailBox.innerHTML += `
+                <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">${email.subject}</h5>
+                        <small>${email.date}</small>
+                    </div>
+                    <p class="mb-1">${email.content}</p>
+                    <small>${email.sender}</small>
+                </a>`;
+            });
+        }
+
+        // 会员费支付相关函数
+        function loadFeeStructure() {
+            fetch('/pay_membership_fee/api/fee_structure')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('feeStructure').innerHTML = `
+                        <p><strong>Level 1 Fee:</strong> ${data.data.level1Fee} RMB</p>
+                        <p><strong>Level 2 Fee:</strong> ${data.data.level2Fee} RMB</p>
+                        <p><strong>Level 3 Fee:</strong> ${data.data.level3Fee} RMB</p>
+                    `;
+                } else {
+                    document.getElementById('feeStructure').innerHTML = '<p class="text-danger">Failed to load fee structure</p>';
+                }
+            });
+        }
+
+        function loadPaymentSummary() {
+            fetch('/pay_membership_fee/api/payment_summary')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    const summary = data.data;
+                    document.getElementById('paymentSummary').innerHTML = `
+                        <p><strong>Total Members:</strong> ${summary.totalMembers}</p>
+                        <p><strong>Level 1 Members:</strong> ${summary.level1Count} × ${summary.level1Fee} RMB = ${summary.level1Total} RMB</p>
+                        <p><strong>Level 2 Members:</strong> ${summary.level2Count} × ${summary.level2Fee} RMB = ${summary.level2Total} RMB</p>
+                        <p><strong>Level 3 Members:</strong> ${summary.level3Count} × ${summary.level3Fee} RMB = ${summary.level3Total} RMB</p>
+                        <hr>
+                        <p><strong>Total Amount Due:</strong> ${summary.totalAmount} RMB</p>
+                    `;
+                    document.getElementById('payButton').disabled = summary.totalAmount === 0;
+                } else {
+                    document.getElementById('paymentSummary').innerHTML = '<p class="text-danger">Failed to load payment summary</p>';
+                }
+            });
+        }
+
+        function payMembershipFees() {
+            if (!confirm('Are you sure you want to proceed with the payment?')) {
+                return;
+            }
+            
+            document.getElementById('payButton').disabled = true;
+            document.getElementById('paymentMsg').innerHTML = '<div class="alert alert-info">Processing payment...</div>';
+            
+            fetch('/pay_membership_fee/api/pay', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('paymentMsg').innerHTML = 
+                    `<div class="alert alert-${data.status === 'success' ? 'success' : 'danger'}">${data.message}</div>`;
+                if (data.status === 'success') {
+                    loadBankAccount();  // 刷新银行账户余额
+                    loadPaymentSummary();  // 刷新支付摘要
+                }
+                document.getElementById('payButton').disabled = false;
+            })
+            .catch(error => {
+                document.getElementById('paymentMsg').innerHTML = 
+                    '<div class="alert alert-danger">Failed to process payment. Please try again.</div>';
+                document.getElementById('payButton').disabled = false;
+            });
+        }
+
+        window.onload = function() {
+            loadMembers();
+            loadEmailBox();
+            loadOrganizations();
+            setupServiceVisibilityRadios();
+            setTimeout(loadServiceConfig, 300);
+            loadBankAccount();
+            loadFeeStructure();  // 添加加载费用结构
+            loadPaymentSummary();  // 添加加载支付摘要
+            loadOrganizationLogs();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DataUser Workspace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f7f9fb; }
+        .workspace-header { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #eee; padding: 32px 24px; margin-bottom: 24px;}
+        .table thead { background: #f0f2f5; }
+        .btn-primary { background: #0056b3; border: none; }
+        .btn-primary:hover { background: #003d80; }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">E-DBA DataUser Workspace</a>
+            <div class="d-flex">
+                <span class="navbar-text me-3" id="userEmail">Email: {{ user_email }}</span>
+                <a href="/user/login" class="btn btn-outline-secondary btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Organization List -->
+        <div class="workspace-header">
+            <h2 class="mb-3">My Organizations</h2>
+            <div class="mb-3">
+                <input type="text" class="form-control" id="searchInput" placeholder="Search organizations...">
+            </div>
+            <div id="msgBox"></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Organization (Full)</th>
+                            <th>Organization (Short)</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orgTableBody">
+                        <!-- Dynamic rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let allOrganizations = [];
+
+        function showMsg(msg, type="info") {
+            document.getElementById('msgBox').innerHTML =
+                `<div class="alert alert-${type}" role="alert">${msg}</div>`;
+        }
+
+        function loadOrganizations() {
+            fetch('/choose_org/datauser/api/organizations')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('orgTableBody');
+                tbody.innerHTML = '';
+                if (data.status === 'success' && data.data.length > 0) {
+                    allOrganizations = data.data;
+                    renderOrganizations(allOrganizations);
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-center">No organizations found.</td></tr>';
+                }
+            })
+            .catch(error => {
+                showMsg('Failed to load organizations: ' + error, 'danger');
+            });
+        }
+
+        function renderOrganizations(orgs) {
+            const tbody = document.getElementById('orgTableBody');
+            tbody.innerHTML = '';
+            if (orgs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center">No organizations found.</td></tr>';
+                return;
+            }
+            orgs.forEach(org => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${org.organizationNameInFull}</td>
+                        <td>${org.organizationNameInShort}</td>
+                        <td>
+                            <button class="btn btn-primary" onclick="enterWorkspace(${org.organizationID})">Enter Workspace</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function enterWorkspace(orgId) {
+            window.location.href = `/choose_org/datauser/organization/${orgId}/workspace`;
+        }
+
+        // 搜索功能
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const keyword = this.value.trim().toLowerCase();
+                const filtered = allOrganizations.filter(org =>
+                    org.organizationNameInFull.toLowerCase().includes(keyword) ||
+                    org.organizationNameInShort.toLowerCase().includes(keyword)
+                );
+                renderOrganizations(filtered);
+            });
+        });
+
+        window.onload = function() {
+            loadOrganizations();
+        }
+    </script>
+</body>
+</html>
