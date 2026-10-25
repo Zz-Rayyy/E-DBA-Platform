@@ -1,80 +1,80 @@
 # E-DBA · Education Data Bay Area
 
-Group C03 的软件工程课程项目。E-DBA 是一个基于 Flask 的多角色教育数据共享平台：组织管理员管理成员和服务，数据提供者配置课程与外部 API，数据消费者按权限访问课程、论文和学生信息服务。
+E-DBA is Group C03's software engineering course project. Built with Flask, it is a role-based platform for sharing educational data across organizations. Organization administrators manage members and services, data providers publish courses and configure external APIs, and data consumers access services according to their permission level.
 
-> 这是课程演示项目。部分功能依赖外部论文、学生信息与银行接口；代码和数据流程未经生产环境安全审计。
+> This is a course demonstration project. Some features require external thesis, student information, and banking services. The application has not been reviewed for production security.
 
-## 项目功能
+## Features
 
-- **邮箱验证码登录与组织注册**：用户按角色登录；组织召集人提交注册申请和 PDF 证明文件。
-- **两级注册审核**：E-Admin 初审，Senior E-Admin 终审；终审通过后创建组织和 O-Convener 账号。
-- **组织与成员管理**：设置 DataUser 权限等级、服务开放范围、组织银行账户及会员费。
-- **数据共享**：发布课程信息，配置论文、学生身份认证和 GPA 查询的外部 API。
-- **日志与政策**：平台管理员管理政策并查看全平台日志；组织召集人查看本组织日志。
+- **Email verification and organization registration:** Users sign in with an email verification code. An organization convener submits a registration request with a PDF proof document.
+- **Two-stage registration review:** E-Admin performs the initial review and Senior E-Admin makes the final decision. Final approval creates the organization and its O-Convener account.
+- **Organization and member management:** Set DataUser access levels, service availability, the organization's bank account, and membership fees.
+- **Educational data sharing:** Publish course information and configure external APIs for thesis services, student identity verification, and GPA queries.
+- **Policies and logs:** Platform administrators manage policies and inspect logs across organizations; conveners can inspect their own organization's logs.
 
-## 角色与权限
+## Roles and permissions
 
-| 角色 | 主要功能 |
+| Role | Main functions |
 | --- | --- |
-| **T-Admin** | 创建、编辑和删除 E-Admin / Senior E-Admin 账号；查看并回答用户求助问题。 |
-| **E-Admin** | 初审组织注册申请；上传和管理平台政策；设置平台银行账户与各级会员费；筛选全平台日志。 |
-| **Senior E-Admin** | 对初审通过的注册申请进行终审；通过后创建组织和 O-Convener。 |
-| **O-Convener** | 管理本组织成员及权限，可通过 Excel 批量添加；启用服务并设置开放范围；维护组织银行账户、支付会员费、查看本组织日志。 |
-| **DataUser Level 1** | 浏览政策、提交求助、查看课程信息、检索论文并下载 PDF。 |
-| **DataUser Level 2** | 拥有 Level 1 功能，并可进行学生身份认证与 GPA 查询，支持 Excel 批量查询。 |
-| **DataUser Level 3 / Data Provider** | 拥有 Level 1/2 功能，并可维护课程信息、配置外部服务 API。 |
+| **T-Admin** | Add and remove E-Admin and Senior E-Admin accounts; view and answer user support requests. |
+| **E-Admin** | Review organization registrations; upload and manage platform policies; set the platform bank account and membership fees; filter logs across organizations. |
+| **Senior E-Admin** | Make the final decision on registrations approved by E-Admin; create an organization and O-Convener after approval. |
+| **O-Convener** | Manage members and access levels, including bulk import from Excel; enable services and set their visibility; maintain the organization bank account, pay membership fees, and view organization logs. |
+| **DataUser Level 1** | Browse policies, submit support requests, view courses, search theses, and download thesis PDFs. |
+| **DataUser Level 2** | Use Level 1 features plus student identity verification and GPA queries, including batch queries from Excel files. |
+| **DataUser Level 3 / Data Provider** | Use Level 1 and 2 features, maintain course information, and configure external service APIs. |
 
-### 登录与注册
+### Sign-in and registration
 
-登录和注册使用邮箱验证码。O-Convener 注册时提交组织信息和 PDF 证明文件。
+Sign-in and registration use email verification codes. An O-Convener provides organization details and a PDF proof document when registering.
 
-![邮箱验证码登录页面](docs/screenshots/login.png)
+![Email verification sign-in page](docs/screenshots/login.png)
 
-### 平台管理员
+### Platform administrators
 
-T-Admin 管理管理员账号并处理用户问题。E-Admin 审核注册申请、设置会员费和平台账户、管理政策及查看日志。Senior E-Admin 负责终审。
+T-Admin manages administrator accounts and support requests. E-Admin reviews registrations, sets fees and the platform account, manages policies, and checks logs. Senior E-Admin performs the final registration review.
 
-![T-Admin 管理页面](docs/screenshots/t-admin.png)
-![E-Admin 审核与配置页面](docs/screenshots/e-admin.png)
-![E-Admin 政策与日志页面](docs/screenshots/e-admin-policy-logs.png)
-![Senior E-Admin 终审页面](docs/screenshots/senior-e-admin.png)
+![T-Admin dashboard](docs/screenshots/t-admin.png)
+![E-Admin registration review and settings](docs/screenshots/e-admin.png)
+![E-Admin policy and log management](docs/screenshots/e-admin-policy-logs.png)
+![Senior E-Admin final review](docs/screenshots/senior-e-admin.png)
 
-### 组织召集人（O-Convener）
+### Organization convener
 
-O-Convener 在组织工作台管理成员、服务和权限等级，也可以查看会员费支付摘要与组织日志。
+The O-Convener workspace provides member and service management, access level settings, a membership fee summary, and organization logs.
 
-![O-Convener 成员和服务管理](docs/screenshots/o-convener.png)
-![O-Convener 银行账户和会员费](docs/screenshots/o-convener-payment.png)
+![O-Convener member and service management](docs/screenshots/o-convener.png)
+![O-Convener bank account and membership fees](docs/screenshots/o-convener-payment.png)
 
-### 数据提供者与消费者
+### Data providers and consumers
 
-Level 3 Data Provider 维护课程并配置服务 API。Level 1 DataUser 使用课程与论文等公开服务；Level 2 还可以进行学生身份认证和 GPA 查询。
+A Level 3 Data Provider maintains courses and configures service APIs. A Level 1 DataUser accesses public course and thesis services; Level 2 adds student identity verification and GPA queries.
 
-![Data Provider 课程管理](docs/screenshots/data-provider-courses.png)
-![Data Provider 服务 API 配置](docs/screenshots/data-provider-api.png)
-![DataUser Level 1 工作台](docs/screenshots/data-consumer-level1.png)
-![DataUser Level 2 工作台](docs/screenshots/data-consumer-level2.png)
+![Data Provider course management](docs/screenshots/data-provider-courses.png)
+![Data Provider service API configuration](docs/screenshots/data-provider-api.png)
+![DataUser Level 1 workspace](docs/screenshots/data-consumer-level1.png)
+![DataUser Level 2 workspace](docs/screenshots/data-consumer-level2.png)
 
-以上界面截图提取自课程演示文稿第 19–33 页。
+These interface screenshots were extracted from slides 19–33 of the course presentation.
 
-## 技术栈与结构
+## Technology and structure
 
-- Python、Flask、Flask-SQLAlchemy、PyMySQL、MySQL
-- HTML、Bootstrap、原生 JavaScript；部分批量功能使用 pandas / openpyxl
-- Flask Blueprint 按业务模块组织路由
+- Python, Flask, Flask-SQLAlchemy, PyMySQL, and MySQL
+- HTML, Bootstrap, and vanilla JavaScript; pandas and openpyxl support some batch operations
+- Flask Blueprints organize routes by feature
 
 ```text
 app/
-├── models/       # 用户、组织、注册、服务、课程、账单、日志等数据模型
-├── views/        # 各角色页面与业务接口
-├── templates/    # 工作台页面
-└── config/       # 数据库配置
-teamwork.py       # Flask 入口
+├── models/       # Users, organizations, registrations, services, courses, fees, and logs
+├── views/        # Role-specific pages and business endpoints
+├── templates/    # Workspace pages
+└── config/       # Database configuration
+teamwork.py       # Flask entry point
 ```
 
-## 本地运行
+## Run locally
 
-需要 Python 3.10+ 和 MySQL。下面以 macOS / Linux shell 为例：
+Use Python 3.10+ and MySQL. These commands assume a macOS or Linux shell:
 
 ```bash
 python3 -m venv .venv
@@ -83,9 +83,9 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-编辑 `.env`，填入自己的 `DATABASE_URL`、`FLASK_SECRET_KEY`、`SMTP_EMAIL`、`SMTP_PASSWORD` 和 `SENIOR_ADMIN_EMAIL`。邮件密码应为邮箱服务商的 SMTP 授权码。`.env` 已被 Git 忽略。
+Edit `.env` and provide your own `DATABASE_URL`, `FLASK_SECRET_KEY`, `SMTP_EMAIL`, `SMTP_PASSWORD`, and `SENIOR_ADMIN_EMAIL`. Use an SMTP authorization code for `SMTP_PASSWORD`. Git ignores `.env`.
 
-在 MySQL 中创建数据库：
+Create the database in MySQL:
 
 ```sql
 CREATE DATABASE IF NOT EXISTS `E-DBA`
@@ -93,7 +93,7 @@ DEFAULT CHARACTER SET utf8mb4
 DEFAULT COLLATE utf8mb4_unicode_ci;
 ```
 
-加载环境变量并启动：
+Load the environment variables and start the app:
 
 ```bash
 set -a
@@ -102,14 +102,14 @@ set +a
 python teamwork.py
 ```
 
-打开 <http://127.0.0.1:5000/user/login>。首次启动会自动建表，但不会创建初始 T-Admin；初始化步骤及各业务流程见[项目使用文档](项目使用文档.md)。
+Open <http://127.0.0.1:5000/user/login>. The first start creates database tables, but it does not create the initial T-Admin account. See the [detailed usage guide (Chinese)](项目使用文档.md) for initialization and workflow instructions.
 
-## 演示范围与已知限制
+## Demo scope and known limitations
 
-- 论文检索与下载、学生身份认证、GPA 查询需要先配置可用的外部 API。
-- 会员费支付调用课程环境中的外部银行转账接口，脱离该环境可能无法完成支付。
-- 验证码仅保存在进程内存中，重启服务后失效。
-- DataUser 的组织列表目前只返回其所属组织；跨组织搜索尚未完整实现。
-- 求助问题与回复共用一个字段，回复后原问题正文会被覆盖；操作日志也尚未覆盖所有功能。
+- Thesis search and download, student identity verification, and GPA queries require working external APIs.
+- Membership fee payments call an external bank transfer service from the course environment and may fail outside it.
+- Verification codes are stored only in process memory and disappear when the server restarts.
+- The DataUser organization list currently shows only the user's own organization; cross-organization search is incomplete.
+- Support questions and replies share one database field, so a reply overwrites the original question text. Logging does not yet cover every operation.
 
-项目面向课程展示，不建议直接部署到公网。更完整的环境配置、数据模型和接口说明见[项目使用文档](项目使用文档.md)。
+This project is intended for coursework demonstrations, not direct deployment on a public server. The [detailed usage guide (Chinese)](项目使用文档.md) describes the environment, data models, and endpoints.
